@@ -1,450 +1,245 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Neo Browser Engine - Release</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --clock-color: #aee9ff;
-  --accent: #009dff;
-  --glass: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.15);
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Neo Browser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #009dff;
+            --bg: #050811;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html { zoom: 0.9; }
+        /* Фоновые эффекты */
+        .glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: var(--accent);
+            filter: blur(150px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
 
-body {
-  height:100vh; overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:#050811; color:#d8f6ff;
-}
+        /* Компактный Тост (фикс наплыва на элементы) */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: -100px;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 15px;
+            background: rgba(0, 157, 255, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 10000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+        .toast.show { bottom: 30px; }
 
-/* ФОН */
-.bg { position:fixed; width:100%; height:100%; overflow:hidden; z-index:0; }
-.blob { position:absolute; border-radius:50%; filter:blur(100px); opacity:0.3; animation: moveFast 4s infinite alternate ease-in-out; }
-.blob:nth-child(1) { width:350px; height:350px; background:var(--accent); top:10%; left:-10%; transition: background 0.5s; }
-.blob:nth-child(2) { width:300px; height:300px; background:#003cff; bottom:10%; right:-10%; animation-duration: 3s; }
-@keyframes moveFast { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(100px, 120px) scale(1.3); } }
+        /* Главный экран */
+        .search-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+            transition: 0.5s;
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            letter-spacing: 10px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px var(--accent);
+            color: #fff;
+        }
+        .search-box {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+        }
+        input {
+            width: 100%;
+            padding: 18px 25px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--accent);
+            color: #fff;
+            outline: none;
+            font-size: 16px;
+            box-shadow: 0 0 20px rgba(0, 157, 255, 0.1);
+        }
 
-/* ГЛАВНЫЙ ЭКРАН */
-#homeView {
-  position: relative; z-index: 10; height: 100vh;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  transition: 0.5s ease;
-}
-#homeView.hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
-
-.settings-btn { position:absolute; top:25px; left:25px; width:30px; height:30px; cursor:pointer; z-index:15; fill: var(--clock-color); transition: fill 0.3s; }
-
-.weather { 
-    position:absolute; top:25px; right:25px; padding:8px 15px; border-radius:12px; 
-    background:rgba(255,255,255,0.03); backdrop-filter:blur(8px); 
-    border:1px solid rgba(255,255,255,0.08); font-size: 13px; z-index: 15; 
-}
-
-/* ЧАСЫ */
-.clock-container { height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-.clock-view { display: none; opacity: 0; transform: scale(0.8); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.clock-view.active { display: block; opacity: 1; transform: scale(1); }
-.clock-box { padding:20px 40px; border-radius:25px; background:rgba(0,0,0,0.2); backdrop-filter:blur(15px); border:1px solid var(--border); text-align: center; }
-
-.analog-clock { width: 180px; height: 180px; border: 3px solid var(--clock-color); border-radius: 50%; position: relative; transition: border-color 0.3s; }
-.analog-clock .number { position: absolute; font-family: 'Orbitron'; font-size: 14px; color: var(--clock-color); width: 20px; text-align: center; transition: color 0.3s; }
-.n12 { top: 5px; left: 50%; transform: translateX(-50%); }
-.n3 { right: 5px; top: 50%; transform: translateY(-50%); }
-.n6 { bottom: 5px; left: 50%; transform: translateX(-50%); }
-.n9 { left: 5px; top: 50%; transform: translateY(-50%); }
-
-/* ПОИСК С АНИМАЦИЕЙ */
-.search-wrapper { position:relative; width:320px; z-index: 20; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-.search-wrapper.expanded { width: 420px; }
-
-.search { 
-    width:100%; padding:16px 25px; border-radius:50px; 
-    border:1px solid rgba(0,200,255,0.3); background:rgba(0,0,0,0.4); 
-    backdrop-filter:blur(12px); color:#fff; font-size:16px; outline:none; 
-    transition: box-shadow 0.3s, border-color 0.3s;
-}
-.search:focus { box-shadow: 0 0 20px rgba(0, 157, 255, 0.2); border-color: var(--accent); }
-
-/* КНОПКИ БЫСТРОГО ДОСТУПА */
-.quick { margin-top:40px; display:flex; justify-content:center; gap:16px; }
-.quick button {
-  width:58px; height:58px; border-radius:20px; border:1px solid var(--border); 
-  background:rgba(0,0,0,0.2); backdrop-filter:blur(10px);
-  cursor:pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center;
-  position: relative; z-index: 30;
-}
-.quick button:active { transform: scale(0.9); background: var(--glass); }
-.quick button svg { width: 24px; height: 24px; fill: #fff; pointer-events: none; }
-
-/* ЭКРАН РЕЗУЛЬТАТОВ */
-#resultsView { 
-  display: none; position: absolute; inset: 0; z-index: 50; 
-  padding: 15px; flex-direction: column; align-items: center; overflow-y: auto; 
-}
-.sticky-header { width: 100%; max-width: 550px; flex-shrink: 0; padding: 10px 0; }
-.mini-search { width: 100%; padding: 14px 22px; background: rgba(8, 12, 20, 0.9); border: 1px solid var(--accent); border-radius: 40px; color: #fff; outline: none; backdrop-filter: blur(25px); transition: border-color 0.3s; }
-
-.filters { 
-    display: flex; gap: 8px; margin: 15px 0; width: 100%; max-width: 550px; 
-    overflow-x: auto; scrollbar-width: none; flex-shrink: 0; min-height: 45px; align-items: center;
-}
-.filter-btn { 
-    padding: 10px 22px; border-radius: 25px; background: var(--glass); 
-    border: 1px solid var(--border); color: rgba(255,255,255,0.6); 
-    font-size: 13px; cursor: pointer; transition: 0.3s; white-space: nowrap; 
-}
-.filter-btn.active { background: var(--accent); color: #fff; border-color: transparent; }
-
-#mainContent { width: 100%; max-width: 550px; display: flex; flex-direction: column; gap: 12px; transition: 0.3s ease; padding-bottom: 30px; }
-.content-hidden { opacity: 0; transform: translateY(10px); }
-
-.result-card { 
-    background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); 
-    border: 1px solid var(--border); border-radius: 20px; padding: 18px; 
-    cursor: pointer; transition: transform 0.2s, background 0.2s;
-}
-.result-card:active { transform: scale(0.98); background: rgba(255,255,255,0.1); }
-
-/* ПАНЕЛЬ НАСТРОЕК */
-.settings-panel {
-  position:absolute; top:0; left:-320px; width:300px; height:100%;
-  background: rgba(5, 10, 20, 0.6); backdrop-filter:blur(25px);
-  border-right:1px solid var(--border); z-index:1000; transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); padding:40px 25px;
-}
-.settings-panel.open { left:0; }
-.close-settings { position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color: #fff; }
-
-.clock-opt { padding: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255,255,255,0.05); cursor: pointer; text-align: center; transition: 0.3s; border: 1px solid transparent; }
-.clock-opt.active { background: var(--accent); border-color: rgba(255,255,255,0.3); }
-
-/* ЛОГИН */
-.overlay { 
-    position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(20px); 
-    display:flex; align-items:center; justify-content:center; z-index:10000; transition: 0.6s;
-}
-.overlay.hidden { opacity: 0; pointer-events: none; }
-#loginBox { 
-    width:310px; padding:40px; background:rgba(10, 15, 29, 0.4); 
-    border-radius:35px; border:1px solid rgba(255, 255, 255, 0.1); text-align:center; backdrop-filter: blur(15px);
-}
-
-/* СТЕКЛЯННЫЙ ТОСТ */
-.toast { 
-    position:fixed; left:50%; bottom:-60px; transform:translateX(-50%); 
-    padding:14px 30px; border-radius:30px; 
-    background: rgba(0, 157, 255, 0.35); backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color:#fff; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-    z-index:5000; white-space: nowrap; pointer-events: none;
-}
-.toast.show { opacity:1; bottom:40px; }
-</style>
+        /* Экран результатов */
+        #results {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 100;
+            overflow-y: auto;
+            padding: 20px 15px;
+        }
+        .result-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .result-card:active { transform: scale(0.98); }
+        .result-card h3 {
+            color: var(--accent);
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .result-card p {
+            font-size: 13px;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+        .back-btn {
+            margin-bottom: 20px;
+            color: var(--accent);
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
 </head>
 <body>
+    <div class="glow" style="top: -50px; left: -50px;"></div>
+    <div class="glow" style="bottom: -50px; right: -50px;"></div>
 
-<div class="bg"><div class="blob" id="mainBlob"></div><div class="blob"></div></div>
-
-<div id="homeView">
-    <div class="settings-btn" onclick="toggleSettings()">
-        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.91,7.62,6.29L5.23,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.72,8.87 c-0.11,0.21-0.06,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.81,11.68,4.81,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.11-0.21,0.06-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
-    </div>
-
-    <div class="weather" id="weatherBox">...</div>
-
-    <div class="clock-container">
-        <div id="view-digital" class="clock-view active">
-            <div class="clock-box">
-                <div class="date-text" style="font-size:11px; opacity:0.6; letter-spacing:2px; margin-bottom:5px">-- --- ----</div>
-                <div class="time-text" style="font-size:42px; font-weight:600; font-family:'Orbitron'; color:var(--clock-color); transition: color 0.3s;">00:00</div>
-                <div class="city-text" id="mainCity" style="font-size:12px; opacity:0.5; margin-top:5px">...</div>
-            </div>
-        </div>
-        <div id="view-analog" class="clock-view">
-            <div class="analog-clock">
-                <div class="number n12">12</div><div class="number n3">3</div><div class="number n6">6</div><div class="number n9">9</div>
-                <div id="hr" style="position:absolute; bottom:50%; left:50%; width:4px; height:40px; background:var(--clock-color); transform-origin:bottom; border-radius:4px; transition: background 0.3s;"></div>
-                <div id="mn" style="position:absolute; bottom:50%; left:50%; width:3px; height:55px; background:var(--clock-color); transform-origin:bottom; opacity:0.7; border-radius:4px; transition: background 0.3s;"></div>
-                <div id="sc" style="position:absolute; bottom:50%; left:50%; width:2px; height:65px; background:#ff4d4d; transform-origin:bottom"></div>
-            </div>
-        </div>
-        <div id="view-minimal" class="clock-view">
-            <div class="time-text" style="font-size:70px; font-weight:600; font-family:'Orbitron'; color:var(--clock-color); text-shadow: 0 0 25px var(--accent); transition: color 0.3s, text-shadow 0.3s;">00:00</div>
+    <div class="search-container" id="home">
+        <div class="logo">NEO</div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Введите запрос..." autocomplete="off">
         </div>
     </div>
 
-    <div class="search-wrapper" id="searchWrap">
-        <input class="search" id="mainSearchInput" placeholder="">
+    <div id="results">
+        <button class="back-btn" onclick="closeResults()">← Назад</button>
+        <div id="resultsList"></div>
     </div>
 
-    <div class="quick">
-        <button onclick="quickLaunch('YouTube', 'https://youtube.com')"><svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></button>
-        <button onclick="quickLaunch('Google', 'https://google.com')"><svg viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.908 3.152-1.928 4.176-1.248 1.248-3.216 2.592-6.896 2.592-5.52 0-9.84-4.464-9.84-10 0-5.536 4.32-10 9.84-10 3.024 0 5.28 1.184 6.896 2.72l2.304-2.304C18.592 1.344 15.936 0 12.48 0 5.616 0 0 5.616 0 12.48s5.616 12.48 12.48 12.48c3.744 0 6.576-1.232 8.76-3.52 2.248-2.248 2.96-5.416 2.96-7.984 0-.768-.064-1.488-.184-2.144H12.48z"/></svg></button>
-        <button onclick="quickLaunch('GitHub', 'https://github.com')"><svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></button>
-        <button onclick="quickLaunch('X', 'https://x.com')"><svg viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></button>
-    </div>
-</div>
+    <div class="toast" id="toast"></div>
 
-<div id="resultsView">
-    <div class="sticky-header">
-        <input type="text" id="miniSearchInput" class="mini-search">
-    </div>
-    <div class="filters">
-        <div class="filter-btn active" onclick="filterResults('all', this)">Все</div>
-        <div class="filter-btn" onclick="filterResults('video', this)">Видео</div>
-        <div class="filter-btn" onclick="filterResults('news', this)">Новости</div>
-        <div class="filter-btn" onclick="filterResults('images', this)">Картинки</div>
-    </div>
-    <div id="mainContent"></div>
-    <button onclick="backToHome()" style="margin-top:10px; padding:12px 30px; border-radius:18px; background:var(--glass); border:1px solid var(--border); color:#fff; cursor:pointer; width: 100%; max-width: 550px;">Назад на главную</button>
-</div>
+    <script>
+        // ТВОИ РЕАЛЬНЫЕ КЛЮЧИ (ВСТАВЛЕНЫ)
+        const API_KEY = 'AIzaSyBW7N3vnSZMFlKUphmoDz0O7Fo0tniFsf0';
+        const CX_ID = '72ad6a4f3f3884ee1';
 
-<div class="settings-panel" id="settingsPanel">
-    <div class="close-settings" onclick="toggleSettings()">✕</div>
-    <h3 style="font-family:'Orbitron'">Настройки</h3>
-    <p style="margin-top:25px; font-size:11px; opacity:0.5; letter-spacing: 1px">СТИЛЬ ЧАСОВ</p>
-    <div style="margin-top:10px" id="clockOptions">
-        <div class="clock-opt" data-type="digital" onclick="setClock('digital', this)">DIGITAL</div>
-        <div class="clock-opt" data-type="analog" onclick="setClock('analog', this)">ANALOG</div>
-        <div class="clock-opt" data-type="minimal" onclick="setClock('minimal', this)">MINIMAL</div>
-    </div>
-    <p style="margin-top:25px; font-size:11px; opacity:0.5; letter-spacing: 1px">ЦВЕТ ТЕМЫ</p>
-    <div id="colorPicker" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:15px"></div>
-</div>
+        const input = document.getElementById('searchInput');
+        const home = document.getElementById('home');
+        const resultsView = document.getElementById('results');
+        const resultsList = document.getElementById('resultsList');
 
-<div class="overlay" id="overlay">
-    <div id="loginBox">
-        <h2 style="font-family:'Orbitron'; margin-bottom:20px; color: var(--accent); transition: color 0.3s;" id="osTitle">Neo OS</h2>
-        <input type="text" id="uInput" placeholder="Имя профиля" style="width:100%; padding:15px; margin-bottom:20px; border-radius:15px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid rgba(255,255,255,0.1); outline:none">
-        <button onclick="saveName()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:15px; color:#fff; font-weight:bold; cursor:pointer; transition: background 0.3s;" id="loginBtn">ВОЙТИ</button>
-    </div>
-</div>
+        // Обработка нажатия Enter
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch(input.value);
+            }
+        });
 
-<div class="toast" id="toast"></div>
+        // Логика поиска
+        async function performSearch(query) {
+            if (!query) return;
+            showToast('Синхронизация с сетью...');
+            
+            try {
+                // Запрос к Google Search API
+                const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${CX_ID}&q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.items) {
+                    renderResults(data.items);
+                } else {
+                    showToast('Ничего не найдено');
+                }
+            } catch (error) {
+                showToast('Ошибка доступа к API');
+                console.error(error);
+            }
+        }
 
-<script>
-const API_KEY = 'f236e79796f3312065c5373eb4f88612'; // Для погоды
-const mainSearch = document.getElementById('mainSearchInput');
-const searchWrap = document.getElementById('searchWrap');
-const miniSearch = document.getElementById('miniSearchInput');
-const homeView = document.getElementById('homeView');
-const resultsView = document.getElementById('resultsView');
-const mainContent = document.getElementById('mainContent');
-const toastEl = document.getElementById("toast");
+        // Отрисовка результатов
+        function renderResults(items) {
+            resultsList.innerHTML = '';
+            home.style.opacity = '0';
+            
+            setTimeout(() => {
+                home.style.display = 'none';
+                resultsView.style.display = 'block';
+                
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.onclick = () => window.open(item.link, '_blank');
+                    card.innerHTML = `
+                        <h3>${item.title}</h3>
+                        <p>${item.snippet}</p>
+                        <small style="opacity:0.4; font-size:10px">${item.displayLink}</small>
+                    `;
+                    resultsList.appendChild(card);
+                });
+            }, 500);
+        }
 
-// АНИМАЦИЯ ПОИСКА
-mainSearch.onfocus = () => searchWrap.classList.add('expanded');
-mainSearch.onblur = () => searchWrap.classList.remove('expanded');
+        // Возврат на главную
+        function closeResults() {
+            resultsView.style.display = 'none';
+            home.style.display = 'flex';
+            setTimeout(() => home.style.opacity = '1', 10);
+            input.value = '';
+        }
 
-// ЭФФЕКТ ПЕЧАТИ
-const phrases = ["Поиск в Google...", "Погода", "Курс валют", "Новости ИИ", "Neo Engine"];
-let pIdx = 0, lIdx = 0, isT = true;
+        // Уведомление
+        function showToast(text) {
+            const t = document.getElementById('toast');
+            t.textContent = text;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
 
-function type() {
-    if (document.activeElement === mainSearch) return;
-    const cur = phrases[pIdx];
-    if (isT) {
-        mainSearch.placeholder = cur.substring(0, lIdx++);
-        if (lIdx > cur.length) { isT = false; setTimeout(type, 2000); return; }
-    } else {
-        mainSearch.placeholder = cur.substring(0, lIdx--);
-        if (lIdx < 0) { isT = true; pIdx = (pIdx + 1) % phrases.length; }
-    }
-    setTimeout(type, isT ? 120 : 80);
-}
-
-// ЧАСЫ
-function updateClock(){
-  const now = new Date();
-  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-  document.querySelectorAll('.time-text').forEach(el => el.textContent = h.toString().padStart(2,'0') + ":" + m.toString().padStart(2,'0'));
-  document.querySelectorAll('.date-text').forEach(el => el.textContent = now.toLocaleDateString('ru-RU', {weekday:'short', month:'short', day:'numeric'}).toUpperCase());
-  if(document.getElementById('sc')){
-      document.getElementById('sc').style.transform = `translateX(-50%) rotate(${s * 6}deg)`;
-      document.getElementById('mn').style.transform = `translateX(-50%) rotate(${m * 6}deg)`;
-      document.getElementById('hr').style.transform = `translateX(-50%) rotate(${h * 30 + m/2}deg)`;
-  }
-}
-setInterval(updateClock, 1000); updateClock();
-
-// НАСТРОЙКИ: ЧАСЫ
-function setClock(type, btn) {
-    document.querySelectorAll('.clock-opt').forEach(el => el.classList.remove('active'));
-    if(btn) btn.classList.add('active');
-    
-    document.querySelectorAll('.clock-view').forEach(v => { v.classList.remove('active'); v.style.display = 'none'; });
-    const t = document.getElementById(`view-${type}`);
-    if(t) {
-        t.style.display = 'block';
-        setTimeout(() => t.classList.add('active'), 10);
-    }
-    localStorage.setItem("neo_clock_style", type);
-}
-
-// НАСТРОЙКИ: ЦВЕТ ТЕМЫ
-function applyColor(c) {
-    document.documentElement.style.setProperty('--clock-color', c);
-    document.documentElement.style.setProperty('--accent', c);
-    
-    // Меняем цвет тоста, сохраняя его стеклянным и прозрачным
-    const rgb = hexToRgb(c);
-    if(rgb) {
-        toastEl.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`;
-    }
-    localStorage.setItem("neo_accent_color", c);
-}
-
-function hexToRgb(hex) {
-    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
-}
-
-// ГЕО И ПОГОДА
-async function initGeo() {
-  try {
-    const res = await fetch('https://ipapi.co/json/');
-    const data = await res.json();
-    document.getElementById('mainCity').textContent = data.city.toUpperCase();
-    getW(data.city);
-  } catch (e) { getW("Dnipro"); }
-}
-
-async function getW(city) {
-  try {
-    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=ru`);
-    const data = await res.json();
-    document.getElementById('weatherBox').textContent = `☁ ${Math.round(data.main.temp)}°C, ${data.weather[0].description}`;
-  } catch (e) { document.getElementById('weatherBox').textContent = "☁ --°C"; }
-}
-
-// ПОИСК (GOOGLE INTEGRATION - VISUAL)
-function startSearch(q) {
-    if(!q) return;
-    homeView.classList.add('hidden');
-    setTimeout(() => {
-        homeView.style.display = 'none';
-        resultsView.style.display = 'flex';
-        miniSearch.value = q;
-        renderResults(q.toLowerCase());
-    }, 400);
-}
-
-function backToHome() {
-    resultsView.style.display = 'none';
-    homeView.style.display = 'flex';
-    setTimeout(() => homeView.classList.remove('hidden'), 50);
-}
-
-function filterResults(f, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    mainContent.classList.add('content-hidden');
-    setTimeout(() => {
-        renderResults(miniSearch.value.toLowerCase(), f);
-        mainContent.classList.remove('content-hidden');
-    }, 250);
-}
-
-// ГЕНЕРАЦИЯ ВЫДАЧИ С ГУГЛ ИКОНКАМИ
-function renderResults(q, filter = 'all') {
-    mainContent.innerHTML = '';
-    
-    // Имитация данных из Google (для API сюда просто вставляется fetch)
-    const mockData = [
-        {t: `${q.charAt(0).toUpperCase() + q.slice(1)} - Официальный сайт`, u: "wikipedia.org", c: "all", desc: `Полная информация по запросу "${q}". Читайте историю, факты и подробности на свободной энциклопедии.`},
-        {t: `Видео: ${q} обзор и детали`, u: "youtube.com", c: "video", desc: `Смотреть последние видео и обзоры по теме "${q}". Подписывайтесь на каналы авторов.`},
-        {t: `Свежие новости: ${q}`, u: "news.google.com", c: "news", desc: `Главные события и заголовки со всего мира. Узнайте, что происходит с "${q}" прямо сейчас.`},
-        {t: `Картинки и фото: ${q}`, u: "pinterest.com", c: "images", desc: `Галерея изображений, идей и вдохновения по вашему запросу. Высокое разрешение.`},
-        {t: `Обсуждение ${q} на форуме`, u: "reddit.com", c: "all", desc: `Узнайте мнение сообщества, задавайте вопросы и делитесь опытом в ветках обсуждений.`}
-    ];
-    
-    let html = '';
-    mockData.filter(i => filter === 'all' || i.c === filter).forEach(i => {
-        // Забираем оригинальные иконки с серверов Google
-        const icon = `https://www.google.com/s2/favicons?sz=64&domain=${i.u}`;
-        
-        // Клик по карточке открывает реальный поиск Google в новой вкладке
-        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-        
-        html += `
-            <div class="result-card" onclick="window.open('${searchUrl}', '_blank')">
-                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px">
-                    <img src="${icon}" style="width:28px; height:28px; border-radius:6px; background: #fff; padding: 2px;">
-                    <div>
-                        <span style="color:var(--accent); font-family:Orbitron; font-weight:600; font-size: 15px;">${i.t}</span><br>
-                        <small style="opacity:0.5; font-size: 11px;">${i.u}</small>
-                    </div>
-                </div>
-                <p style="font-size:13px; line-height:1.5; opacity:0.85; margin-top: 5px;">${i.desc}</p>
-            </div>`;
-    });
-    mainContent.innerHTML = html;
-}
-
-// УТИЛИТЫ И КНОПКИ
-function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
-
-function showToast(txt) {
-    toastEl.textContent = txt; 
-    toastEl.classList.add("show");
-    setTimeout(() => toastEl.classList.remove("show"), 3000);
-}
-
-// РАБОЧИЕ КНОПКИ: Показывают прозрачный тост и открывают сайт
-function quickLaunch(name, url) { 
-    showToast(`Открываю ${name}...`); 
-    setTimeout(() => window.open(url, '_blank'), 800); // Задержка для красоты
-}
-
-// ГЕНЕРАТОР ЦВЕТОВ
-const colors = ['#aee9ff', '#009dff', '#00ffcc', '#ff00ff', '#ffcc00', '#ff4d4d', '#ffffff'];
-colors.forEach(c => {
-    const d = document.createElement('div');
-    d.style.width='32px'; d.style.height='32px'; d.style.borderRadius='50%'; d.style.background=c; d.style.cursor='pointer'; d.style.border='2px solid rgba(255,255,255,0.1)';
-    d.onclick = () => applyColor(c);
-    document.getElementById('colorPicker').appendChild(d);
-});
-
-// ЛОГИН
-function saveName(){
-    const n = document.getElementById('uInput').value;
-    if(!n) return;
-    localStorage.setItem("neo_user", n);
-    document.getElementById('overlay').classList.add('hidden');
-    showToast(`Система активирована, ${n}`);
-    initGeo();
-}
-
-// ОБРАБОТЧИК ENTER В ПОИСКЕ
-mainSearch.onkeypress = (e) => { if(e.key==='Enter') startSearch(mainSearch.value); };
-miniSearch.onkeypress = (e) => { if(e.key==='Enter') renderResults(miniSearch.value.toLowerCase()); };
-
-// ЗАГРУЗКА ПРИ СТАРТЕ
-window.onload = () => {
-    // 1. Проверка пользователя
-    const u = localStorage.getItem("neo_user");
-    if(u) {
-        document.getElementById('overlay').classList.add('hidden');
-        showToast(`С возвращением, ${u}`);
-        initGeo();
-    }
-
-    // 2. Восстановление цвета
-    const savedColor = localStorage.getItem("neo_accent_color");
-    if(savedColor) { applyColor(savedColor); }
-
-    // 3. Восстановление стиля часов
-    const savedClock = localStorage.getItem("neo_clock_style") || 'digital';
-    const clockBtn = document.querySelector(`.clock-opt[data-type="${savedClock}"]`);
-    setClock(savedClock, clockBtn);
-
-    // Запуск анимации текста
-    type();
-}
-</script>
+        // Приветствие
+        window.onload = () => {
+            setTimeout(() => showToast('Neo Browser активен'), 1000);
+        };
+    </script>
 </body>
-  </html>
+</html>
