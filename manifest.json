@@ -1,0 +1,21 @@
+{
+  "name": "Neo Browser",
+  "short_name": "Neo",
+  "start_url": "/Neo-browser/",
+  "display": "standalone",
+  "background_color": "#050811",
+  "theme_color": "#009dff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
