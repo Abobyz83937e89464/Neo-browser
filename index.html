@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neo Browser Engine - Final Release</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#009dff">
-    <link rel="icon" href="icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -494,16 +491,5 @@
         type();
     };
 </script>
-    
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js")
-      .then(() => console.log("SW registered"))
-      .catch(err => console.log("SW error:", err));
-  });
-}
-</script>
-    
 </body>
 </html>
