@@ -1,24 +1,21 @@
-const CACHE_NAME = "neo-browser-cache-v1";
+const CACHE_NAME = "neo-browser-v1";
 
 const urlsToCache = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
+  "/Neo-browser/",
+  "/Neo-browser/index.html",
+  "/Neo-browser/manifest.json",
+  "/Neo-browser/icon-192.png",
+  "/Neo-browser/icon-512.png"
 ];
 
-// установка service worker
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
-// активация
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -33,12 +30,10 @@ self.addEventListener("activate", event => {
   );
 });
 
-// перехват запросов
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
   );
 });
