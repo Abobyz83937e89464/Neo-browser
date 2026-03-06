@@ -494,12 +494,16 @@
         type();
     };
 </script>
-
+    
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("SW registered"))
+      .catch(err => console.log("SW error:", err));
+  });
 }
 </script>
-
+    
 </body>
 </html>
